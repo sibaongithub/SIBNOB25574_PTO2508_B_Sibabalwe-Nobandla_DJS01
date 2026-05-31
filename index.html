@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PodcastApp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', system-ui, sans-serif; }
+    body { background: #f3f4f6; }
+    .card { cursor: pointer; transition: box-shadow .15s, transform .15s; }
+    .card:hover { box-shadow: 0 10px 28px rgba(0,0,0,.12); transform: translateY(-3px); }
+    .blob { background: #9aa1ac; display: flex; align-items: center; justify-content: center; color: #f8fafc; font-weight: 500; }
+    .pill { display: inline-block; background: #f1f3f5; color: #374151; font-size: .78rem; padding: 3px 11px; border-radius: 6px; }
+    .pill-lg { display: inline-block; background: #f1f3f5; color: #1f2937; font-size: .9rem; padding: 6px 16px; border-radius: 9999px; }
+    .modal-bg { animation: fade .15s ease; } .modal-box { animation: rise .2s ease; }
+    @keyframes fade { from{opacity:0} to{opacity:1} }
+    @keyframes rise { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+    select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8 1.5 3.5h9z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 11px center; padding-right:30px !important; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Navbar -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-[1400px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5 font-bold text-xl text-gray-900">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a5 5 0 0 1 10 0v1.662"/></svg>
+        PodcastApp
+      </div>
+      <div class="flex items-center gap-5 text-gray-600">
+        <button aria-label="Search" class="hover:text-gray-900"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.35-4.35"/></svg></button>
+        <div class="w-8 h-8 rounded-full blob" role="img" aria-label="Account"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-[1400px] mx-auto px-5 sm:px-8 py-7">
+    <div class="flex items-center gap-3 mb-7">
+      <span class="text-[15px] font-medium text-gray-700">Filter by:</span>
+      <select id="genreFilter" class="bg-white border border-gray-300 rounded-lg px-3.5 py-2 text-[15px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer">
+        <option value="all">All Genres</option>
+      </select>
+      <select id="sortFilter" class="bg-white border border-gray-300 rounded-lg px-3.5 py-2 text-[15px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer">
+        <option value="updated">Recently Updated</option>
+        <option value="popular">Most Popular</option>
+        <option value="newest">Newest</option>
+      </select>
+    </div>
+    <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+  </main>
+
+  <!-- Modal -->
+  <div id="modal" class="modal-bg fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto hidden">
+    <div class="modal-box bg-white sm:rounded-2xl shadow-2xl w-full max-w-3xl my-0 sm:my-8 min-h-screen sm:min-h-0 sm:max-h-[90vh] sm:overflow-y-auto">
+      <div class="p-6 sm:p-8">
+        <div class="flex items-start justify-between mb-6">
+          <h2 id="mTitle" class="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight pr-4"></h2>
+          <button id="mClose" aria-label="Close" class="text-gray-400 hover:text-red-500 hover:scale-110 transition text-3xl leading-none">&times;</button>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-6 mb-7">
+          <div class="blob w-full sm:w-60 h-60 rounded-xl flex-shrink-0">Large Cover Image</div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-[15px] font-semibold text-gray-900 mb-2">Description</h3>
+            <p id="mDesc" class="text-[15px] text-gray-600 leading-relaxed mb-5"></p>
+            <h3 class="text-[15px] font-semibold text-gray-900 mb-2.5">Genres</h3>
+            <div id="mGenres" class="flex flex-wrap gap-2 mb-4"></div>
+            <p id="mUpdated" class="flex items-center gap-2 text-sm text-gray-500"></p>
+          </div>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Seasons</h3>
+        <div id="mSeasons" class="space-y-3"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// podcast data
+const podcasts = [
+  { id:"10716", title:"Something Was Wrong", seasons:14, genres:[1,2], updated:"2022-11-03T07:00:00.000Z", description:`Something Was Wrong is an Iris Award-winning true-crime docuseries about the discovery, trauma, and recovery from shocking life events and abusive relationships.` },
+  { id:"5675", title:"This Is Actually Happening", seasons:12, genres:[2], updated:"2022-11-01T10:00:00.000Z", description:`What if your mother left to follow a cult, or you woke up in a morgue, or your boat got caught in a storm and began to sink? This Is Actually Happening brings you extraordinary true stories of life-changing events told by the people who lived them.` },
+  { id:"5279", title:"American History Tellers", seasons:51, genres:[3], updated:"2022-11-02T07:01:00.000Z", description:`The Cold War, Prohibition, the Gold Rush, the Space Race. Every part of your life can be traced to our history, but how well do you really know the stories that made America? Hosted by Lindsay Graham. From Wondery.` },
+  { id:"10539", title:"Scamfluencers", seasons:3, genres:[2], updated:"2022-10-24T07:01:00.000Z", description:`You never really know someone, especially online. Join co-hosts Scaachi Koul and Sarah Hagi as they unpack epic stories of deception from the worlds of social media, fashion, finance, health, and wellness.` },
+  { id:"9177", title:"Killer Psyche", seasons:2, genres:[3,2], updated:"2022-11-01T07:03:00.000Z", description:`When a shocking crime occurs, people ask why. On Killer Psyche, retired FBI agent Candice DeLong draws on her decades of experience to reveal what drove these murderers and criminals to commit their acts.` },
+  { id:"6807", title:"Even the Rich", seasons:33, genres:[4,5,3], updated:"2022-11-01T07:08:00.000Z", description:`Co-hosts Brooke Siffrinn and Aricia Skidmore-Williams pull back the curtain on some of the greatest family dynasties in history, from the Murdochs to the Royals to the Carters.` },
+  { id:"8514", title:"Against The Odds", seasons:19, genres:[3], updated:"2022-11-01T07:01:00.000Z", description:`In this immersive series, host-adventurers Mike Corey and Cassie De Pecol share thrilling stories of survival, from the daring rescue of a soccer team trapped in a cave in Thailand to a woman taken hostage by Somali pirates.` },
+  { id:"10276", title:"This Podcast Will Kill You", seasons:5, genres:[1], updated:"2022-10-25T07:01:00.000Z", description:`Each episode tackles a different disease, from its history to its biology and finally how scared you need to be. Ecologists Erin Welsh and Erin Allmann Updyke make infectious diseases acceptable dinner-party conversation.` },
+  { id:"8860", title:"British Scandal", seasons:19, genres:[2], updated:"2022-11-01T23:01:00.000Z", description:`In a country obsessed with gossip, the great and the good fear one thing more than any other: scandal. From Phone Hacking to Saville to Profumo, these stories reveal the reality of power and the failings of the British elite.` },
+  { id:"5629", title:"Tides of History", seasons:5, genres:[3], updated:"2022-11-03T07:01:00.000Z", description:`Everywhere around us are echoes of the past. Those echoes define the boundaries of states and countries, how we pray and how we fight. Host Patrick Wyman, PhD helps us understand our world and how it got to be the way it is.` },
+];
+const genres = [
+  {id:1,title:"Personal Growth"},{id:2,title:"Investigative Journalism"},{id:3,title:"History"},
+  {id:4,title:"Comedy"},{id:5,title:"Entertainment"},{id:6,title:"Business"},
+  {id:7,title:"Fiction"},{id:8,title:"News"},{id:9,title:"Kids and Family"},
+];
+const seasons = [
+  { id:"10716", seasonDetails:[{title:"Season 1",episodes:10},{title:"Season 2",episodes:8},{title:"Season 3",episodes:9},{title:"Season 4",episodes:7},{title:"Season 5",episodes:10},{title:"Season 6",episodes:7},{title:"Season 7",episodes:6},{title:"Season 8",episodes:6},{title:"Season 9",episodes:9},{title:"Season 10",episodes:10},{title:"Season 11",episodes:10},{title:"Season 12",episodes:6},{title:"Season 13",episodes:10},{title:"Season 14",episodes:4}] },
+  { id:"5675", seasonDetails:[{title:"Season 1",episodes:10},{title:"Season 2",episodes:10},{title:"Season 3",episodes:10},{title:"Season 4",episodes:10},{title:"Season 5",episodes:10},{title:"Season 6",episodes:10},{title:"Season 7",episodes:10},{title:"Season 8",episodes:10},{title:"Season 9",episodes:10},{title:"Season 10",episodes:10},{title:"Season 11",episodes:10},{title:"Season 12",episodes:10}] },
+  { id:"5279", seasonDetails:[{title:"The Cold War",episodes:7},{title:"Prohibition",episodes:7},{title:"The Age of Jackson",episodes:7},{title:"The Space Race",episodes:4},{title:"American Revolution",episodes:7},{title:"National Parks",episodes:7},{title:"Civil Rights",episodes:7},{title:"Political Parties",episodes:7},{title:"The 1968 Chicago Protests",episodes:4},{title:"The Great Depression",episodes:7},{title:"J. Edgar Hoover's FBI",episodes:7}] },
+  { id:"10539", seasonDetails:[{title:"Black Swan Murder",episodes:6},{title:"Fake Influencer",episodes:5},{title:"Hollywood Ponzi",episodes:5}] },
+  { id:"9177", seasonDetails:[{title:"Season 1",episodes:10},{title:"Season 2",episodes:12}] },
+  { id:"6807", seasonDetails:[{title:"The Murdochs",episodes:6},{title:"The British Royals",episodes:6},{title:"Jay-Z and Beyonce",episodes:6},{title:"The Kennedys",episodes:5},{title:"The Vanderbilts",episodes:5}] },
+  { id:"8514", seasonDetails:[{title:"Thai Cave Rescue",episodes:5},{title:"Trapped on Mount Hood",episodes:6},{title:"Crash in a Volcano",episodes:3},{title:"Wildfire in Paradise",episodes:6},{title:"The Race to Save Squalus",episodes:1}] },
+  { id:"10276", seasonDetails:[{title:"Season 1",episodes:10},{title:"Season 2",episodes:10},{title:"Season 3",episodes:10},{title:"Season 4",episodes:10},{title:"Season 5",episodes:10}] },
+  { id:"8860", seasonDetails:[{title:"The Litvinenko Affair",episodes:5},{title:"The Sexed Up Dossier",episodes:4},{title:"The Murdoch Phone Hacking",episodes:5},{title:"Breaking Barings",episodes:4},{title:"The Profumo Affair",episodes:6},{title:"The Canoe Con",episodes:4},{title:"Anarchy In The UK",episodes:5},{title:"Lord Lucan",episodes:4},{title:"The Coughing Major",episodes:4},{title:"Maxwell",episodes:5}] },
+  { id:"5629", seasonDetails:[{title:"Rise of the Modern World",episodes:10},{title:"The Later Middle Ages",episodes:10},{title:"Early Modern Explosion",episodes:10},{title:"Prehistory",episodes:10},{title:"Classic Tides",episodes:4}] },
+];
+
+// helper functions
+// turn the date into something readable like "Updated 3 November 2022"
+function updatedDate(d){const dt=new Date(d);return `Updated ${dt.getUTCDate()} ${dt.toLocaleString('en-GB',{month:'long',timeZone:'UTC'})} ${dt.getUTCFullYear()}`;}
+// date for the modal
+function longDate(d){return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});}
+// get the genre names from their ids
+function genreNames(ids){return ids.map(id=>(genres.find(g=>g.id===id)||{}).title).filter(Boolean);}
+// get the seasons for a podcast
+function seasonsFor(id){return (seasons.find(s=>s.id===id)||{}).seasonDetails||[];}
+// make text safe to put in the page
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+const calIcon=`<svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+// build the cards
+const grid=document.getElementById('grid');
+const genreFilter=document.getElementById('genreFilter');
+const sortFilter=document.getElementById('sortFilter');
+
+[...new Set(podcasts.flatMap(p=>p.genres))].sort((a,b)=>a-b).forEach(id=>{
+  const g=genres.find(g=>g.id===id);if(!g)return;
+  const o=document.createElement('option');o.value=id;o.textContent=g.title;genreFilter.appendChild(o);
+});
+
+// show the cards (filtered and sorted)
+function render(){
+  let list=[...podcasts];
+  if(genreFilter.value!=='all')list=list.filter(p=>p.genres.includes(Number(genreFilter.value)));
+  if(sortFilter.value==='popular')list.sort((a,b)=>b.seasons-a.seasons);
+  else list.sort((a,b)=>new Date(b.updated)-new Date(a.updated));
+
+  grid.innerHTML='';
+  list.forEach(p=>{
+    const card=document.createElement('div');
+    card.className='card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100';
+    card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',`View details for ${p.title}`);
+    const tags=genreNames(p.genres).map(t=>`<span class="pill">${esc(t)}</span>`).join('');
+    card.innerHTML=`
+      <div class="p-4 pb-0">
+        <div class="blob w-full aspect-[4/3] rounded-xl">Podcast Cover</div>
+      </div>
+      <div class="p-4 pt-3">
+        <h2 class="font-bold text-gray-900 text-lg leading-snug mb-2">${esc(p.title)}</h2>
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-3">${calIcon}${p.seasons} season${p.seasons!==1?'s':''}</div>
+        <div class="flex flex-wrap gap-2 mb-3.5">${tags}</div>
+        <p class="text-sm text-gray-400">${updatedDate(p.updated)}</p>
+      </div>`;
+    card.addEventListener('click',()=>openModal(p.id));
+    card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openModal(p.id);}});
+    grid.appendChild(card);
+  });
+}
+
+// the pop up
+const modal=document.getElementById('modal');
+// open the pop up for a podcast
+function openModal(id){
+  const p=podcasts.find(p=>p.id===id);if(!p)return;
+  document.getElementById('mTitle').textContent=p.title;
+  document.getElementById('mDesc').textContent=p.description;
+  document.getElementById('mUpdated').innerHTML=`${calIcon}Last updated: ${longDate(p.updated)}`;
+  document.getElementById('mGenres').innerHTML=genreNames(p.genres).map(t=>`<span class="pill-lg">${esc(t)}</span>`).join('');
+  const d=seasonsFor(id);
+  document.getElementById('mSeasons').innerHTML=d.length?d.map(s=>`
+    <div class="flex items-center justify-between border border-gray-200 rounded-xl px-5 py-4">
+      <p class="font-semibold text-gray-900">${esc(s.title)}</p>
+      <span class="text-sm text-gray-500 ml-4 flex-shrink-0">${s.episodes} episode${s.episodes!==1?'s':''}</span>
+    </div>`).join(''):'<p class="text-sm text-gray-400">No season details.</p>';
+  modal.classList.remove('hidden');document.body.style.overflow='hidden';
+}
+// close the pop up
+function closeModal(){modal.classList.add('hidden');document.body.style.overflow='';}
+
+document.getElementById('mClose').addEventListener('click',closeModal);
+modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+genreFilter.addEventListener('change',render);
+sortFilter.addEventListener('change',render);
+
+render();
+</script>
+</body>
+</html>
